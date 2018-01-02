@@ -8,13 +8,73 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.UnsupportedEncodingException;
+import java.net.URL;
 
 public class MyFile {
 
 	public static void main(String[] args) {
+		//test: read file
+		// folder: "target/classes/bar.txt"   => test run app on Eclipse as Java app
+		URL url = MyFile.class.getResource("/bar.txt");
+		System.out.println("url="+url.getPath());
+		readFileLine(url.getPath());
+		
+		//read file
+		// folder: "target/classes/bar.txt"   => test run app on Eclipse as Java app
+		readFileUtf8(url.getPath());
+		
+		System.out.println();
+		System.out.println();
+		//write file1:
+		url = MyFile.class.getResource("/"); // see folder "$Project/target/classes/output.txt"
+		System.out.println("url="+url.getPath() + "/output.txt");
+		writeByte2File(url.getPath()+"/output.txt", "\r\ntest write to file1");
+		
+		//write file2:  // see folder "$Project/target/classes/output.txt"
+		writeCharacter2FileUtf8(url.getPath()+"/output.txt", "\r\ntest write to writeCharacter2FileUtf8");
+		
+		//write file3:  // see folder "$Project/target/classes/output.txt"
+		writeCharacter2FileUtf8_Buffer(url.getPath()+"/output.txt", "\r\ntest write to writeCharacter2FileUtf8_Buffer");
+		
+		//trường hợp đọc từ file *.jar sẽ khác: xem GetJavaResourcePath();
+		
+	}
+	
+	/**: trường hợp ko đóng gói trong *.jar
+		Vd1:
+		//gọi từ bên ngoài của *.jar
+		// data.txt: là Relative path tương ứng với package của class đó
+		foo.bar.Baz.class.getResource("data.txt"); // WEB-INF/class/foo/bar/Baz/bar.txt
+		
+		vd2:
+		//giả sử some.Other và foo.bar.Baz đều đc classloader rồi.
+		// “/” bắt đầu => là dùng absolute path
+		some.Other.class.getResource("/foo/bar/data.txt"); // WEB-INF/class/foo/bar/bar.txt
+		
+	 */
+	
+	/**	trường hợp files đc đóng gói cùng file *.jar:
+		// đối với *.jar => WEB-INF/lib/
+		InputStream in = getClass().getResourceAsStream("/file.txt"); 
+		BufferedReader reader = new BufferedReader(new InputStreamReader(in));
+	*/
+
+	public static void GetJavaResourcePath(){
+		//hàm này tính từ Class hiện tại làm vị trí tương đối nếu ko có “/” ở đầu path
+		MyFile.class.getResource("bar.txt"); //=> WEB-INF/classes/pakageofclass/bar.txt
+		// tính từ root nếu có “/” ở đầu path
+		MyFile.class.getResource("/");         //=> WEB-INF/classes
+		MyFile.class.getResource("/bar.txt");  //=> WEB-INF/classes/bar.txt
+		
+		//===================
+		// trường hợp files đc đóng gói cùng file *.jar:
+		// đối với *.jar => WEB-INF/lib/
+		InputStream in = MyFile.class.getResourceAsStream("/file.txt"); 
+		BufferedReader reader = new BufferedReader(new InputStreamReader(in));
 
 	}
 
@@ -43,14 +103,14 @@ public class MyFile {
 	}
 
 	/**
-	 * cách này sẽ chuyển đổi dữ liệu từ UTF16 sang UTF8 trc khi ghi xuống file.
 	 * OutputStreamWriter: chuyển đổi UTF8
+	 * Ko có buffer. nếu có buffer thì phải có mục config size của buffer
 	 */
-	private void writeUtf8File(String fileName,String content){
+	public static void writeCharacter2FileUtf8(String fileName,String content){
 		File file = new File(fileName);
 		try {
-			FileOutputStream fs = new FileOutputStream(file,false); // false to overwrite (default)
-			OutputStreamWriter ow = new OutputStreamWriter(fs,"UTF-8");//byte to charset convert 8k char buffer
+			FileOutputStream fs = new FileOutputStream(file,true); // true to append,  false to overwrite (default)
+			OutputStreamWriter ow = new OutputStreamWriter(fs,"UTF-8");
 			try {
 				ow.write(content);//ghi vào buffer, chưa ghi vào file
 				ow.flush();  //ghi phần còn lại của buffer vào file
@@ -68,19 +128,19 @@ public class MyFile {
 	 * BufferedWriter: ghi theo 1 character UTF16 = 2bytes xuống file.
 	 * Kiểu String trên Java và android là UTF16 => mỗi character là 2bytes.
 	 */
-	private void writeCharacter2FileUtf8(String fileName,String content){
-		File file = new File("test.txt");
+	public static void writeCharacter2FileUtf8_Buffer(String fileName,String content){
+		File file = new File(fileName);
 		BufferedWriter writer;
 		FileOutputStream fs;
 
 		try {
-			fs = new FileOutputStream(file,false); // true to append
+			fs = new FileOutputStream(file,true); // true to append,  false to overwrite (default)
 			// false to overwrite (default)
 
-			OutputStreamWriter ow = new OutputStreamWriter(fs,"UTF-8");//byte to charset convert 8k char buffer
+			OutputStreamWriter ow = new OutputStreamWriter(fs,"UTF-8");
 			//lúc ghi xuống file thì chuyển thành UTF8
 			writer = new BufferedWriter(ow,4096); //buffer for char 4096 char buffer
-			writer.write("content");//ghi vào buffer, buffer chỉ đc ghi vào file khi buffer đầy
+			writer.write(content);//ghi vào buffer, buffer chỉ đc ghi vào file khi buffer đầy
 
 			//hoặc dùng lệnh flush:ghi buffer vao file và xóa buffer hiện tại
 			writer.flush();//chuyển từ buffer vào file, xóa buffer (ko cần đợi buffer đầy)
@@ -99,6 +159,8 @@ public class MyFile {
 	public static String readFileUtf8( String fileName){
 		String st;
 
+		System.out.println("=========================readFileUtf8(String filename)");
+		
 		try{
 			File file = new File(fileName);
 			if( !(file.exists() && file.isFile())){
@@ -127,7 +189,9 @@ public class MyFile {
 					stBuilder.append(buf,0,n);
 				}  
 			}
-
+			
+			System.out.print(stBuilder.toString());
+			
 			return stBuilder.toString();
 		}catch(Exception e) {
 			e.printStackTrace();
@@ -136,7 +200,7 @@ public class MyFile {
 		return null;
 	}
 	
-	public String readFileUtf8_2(String filename, String charSetName) throws IOException  {
+	public static String readFileUtf8_2(String filename, String charSetName) throws IOException  {
 	
 		BufferedReader buffReader =  new BufferedReader(new InputStreamReader(	new FileInputStream(filename),"UTF-8"),4096);
 
@@ -184,5 +248,8 @@ public class MyFile {
 		catch (IOException e) {
 			e.printStackTrace();
 		}
+		
+		System.out.println("=========================readFileLine(String filename)");
+		System.out.print(text.toString());
 	}
 }
