@@ -2,6 +2,7 @@ package MyFile;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -13,6 +14,9 @@ import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.UnsupportedEncodingException;
 import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 public class MyFile {
 
@@ -110,6 +114,7 @@ public class MyFile {
 		File file = new File(fileName);
 		try {
 			FileOutputStream fs = new FileOutputStream(file,true); // true to append,  false to overwrite (default)
+			//chuyển đổi character (1 character = 2byte) về UTF8
 			OutputStreamWriter ow = new OutputStreamWriter(fs,"UTF-8");
 			try {
 				ow.write(content);//ghi vào buffer, chưa ghi vào file
@@ -130,7 +135,7 @@ public class MyFile {
 	 */
 	public static void writeCharacter2FileUtf8_Buffer(String fileName,String content){
 		File file = new File(fileName);
-		BufferedWriter writer;
+		BufferedWriter writerBuff;
 		FileOutputStream fs;
 
 		try {
@@ -139,12 +144,12 @@ public class MyFile {
 
 			OutputStreamWriter ow = new OutputStreamWriter(fs,"UTF-8");
 			//lúc ghi xuống file thì chuyển thành UTF8
-			writer = new BufferedWriter(ow,4096); //buffer for char 4096 char buffer
-			writer.write(content);//ghi vào buffer, buffer chỉ đc ghi vào file khi buffer đầy
+			writerBuff = new BufferedWriter(ow,4096); //buffer for char 4096 char buffer
+			writerBuff.write(content);//ghi vào buffer, buffer chỉ đc ghi vào file khi buffer đầy
 
 			//hoặc dùng lệnh flush:ghi buffer vao file và xóa buffer hiện tại
-			writer.flush();//chuyển từ buffer vào file, xóa buffer (ko cần đợi buffer đầy)
-			writer.close() ; //nên dùng hàm này để close
+			writerBuff.flush();//chuyển từ buffer vào file, xóa buffer (ko cần đợi buffer đầy)
+			writerBuff.close() ; //nên dùng hàm này để close
 			fs.close();
 		} catch (Exception e) {
 			e.printStackTrace();//nếu file bị close trc lúc đang ghi vào file
@@ -171,6 +176,7 @@ public class MyFile {
 			FileInputStream inputStream= new FileInputStream(file); //sequence byte of file no buffer
 
 			//nếu file chứa nội dụng định dạng UTF8 thi dùng inputStreamReader
+			//convert UTF8 to character (1 character = 2bytes trên android và java)
 			InputStreamReader reader = new InputStreamReader(inputStream,"UTF-8"); 
 			BufferedReader buffReader = new BufferedReader(reader,4096); //hỗ trợ buffer tăng performance
 
@@ -202,6 +208,7 @@ public class MyFile {
 	
 	public static String readFileUtf8_2(String filename, String charSetName) throws IOException  {
 	
+		//convert UTF8 to character (1 character = 2bytes trên android và java)
 		BufferedReader buffReader =  new BufferedReader(new InputStreamReader(	new FileInputStream(filename),"UTF-8"),4096);
 
 		//Read text from file
@@ -224,11 +231,26 @@ public class MyFile {
 		
 	}
 	
+	/**
+	 * cái này dùng thư viện NIO để đọc file ra
+		import java.nio.file.Files;
+		import java.nio.file.Paths;
+		import java.nio.file.Path;
+	 */
+	public static byte[] readFile2ByteArray(String filename) throws IOException {
+		
+		Path path = Paths.get(filename);
+		byte[] data = Files.readAllBytes(path);
+		
+		return data;
+		
+	}
+	
 	
 	/**
 	 * BufferedReader: đọc theo kiểu Character = 2 bytes ra.
 	 */
-	public static void readFileLine(String fileName){
+	public static String readFileLine(String fileName){
 		//Get the text file
 		File file = new File(fileName);
 
@@ -236,6 +258,7 @@ public class MyFile {
 		StringBuilder text = new StringBuilder();
 
 		try {
+			//FileReader sẽ convert mặc đinh ASCCI tới 2byte Unicode
 		    BufferedReader br = new BufferedReader(new FileReader(file));
 		    String line;
 
@@ -251,5 +274,7 @@ public class MyFile {
 		
 		System.out.println("=========================readFileLine(String filename)");
 		System.out.print(text.toString());
+		
+		return text.toString();
 	}
 }
