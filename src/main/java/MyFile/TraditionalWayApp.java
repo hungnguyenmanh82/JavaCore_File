@@ -18,12 +18,12 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
-public class MyFile {
+public class TraditionalWayApp {
 
 	public static void main(String[] args) {
 		//test: read file
 		// folder: "target/classes/bar.txt"   => test run app on Eclipse as Java app
-		URL url = MyFile.class.getResource("/bar.txt");
+		URL url = TraditionalWayApp.class.getResource("/bar.txt");
 		System.out.println("url="+url.getPath());
 		readFileLine(url.getPath());
 		
@@ -34,7 +34,7 @@ public class MyFile {
 		System.out.println();
 		System.out.println();
 		//write file1:
-		url = MyFile.class.getResource("/"); // see folder "$Project/target/classes/output.txt"
+		url = TraditionalWayApp.class.getResource("/"); // see folder "$Project/target/classes/output.txt"
 		System.out.println("url="+url.getPath() + "/output.txt");
 		writeByte2File(url.getPath()+"/output.txt", "\r\ntest write to file1");
 		
@@ -69,15 +69,15 @@ public class MyFile {
 
 	public static void GetJavaResourcePath(){
 		//hàm này tính từ Class hiện tại làm vị trí tương đối nếu ko có “/” ở đầu path
-		MyFile.class.getResource("bar.txt"); //=> WEB-INF/classes/pakageofclass/bar.txt
+		TraditionalWayApp.class.getResource("bar.txt"); //=> WEB-INF/classes/pakageofclass/bar.txt
 		// tính từ root nếu có “/” ở đầu path
-		MyFile.class.getResource("/");         //=> WEB-INF/classes
-		MyFile.class.getResource("/bar.txt");  //=> WEB-INF/classes/bar.txt
+		TraditionalWayApp.class.getResource("/");         //=> WEB-INF/classes
+		TraditionalWayApp.class.getResource("/bar.txt");  //=> WEB-INF/classes/bar.txt
 		
 		//===================
 		// trường hợp files đc đóng gói cùng file *.jar:
 		// đối với *.jar => WEB-INF/lib/
-		InputStream in = MyFile.class.getResourceAsStream("/file.txt"); 
+		InputStream in = TraditionalWayApp.class.getResourceAsStream("/file.txt"); 
 		BufferedReader reader = new BufferedReader(new InputStreamReader(in));
 
 	}
