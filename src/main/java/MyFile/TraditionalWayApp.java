@@ -56,7 +56,7 @@ public class TraditionalWayApp {
 		
 		vd2:
 		//giả sử some.Other và foo.bar.Baz đều đc classloader rồi.
-		// “/” bắt đầu => là dùng absolute path
+		// root = “/” cấp đầu tiên trong *.jar file tương ứng với main/resources/ và Main/java/ => là dùng absolute path
 		some.Other.class.getResource("/foo/bar/data.txt"); // WEB-INF/class/foo/bar/bar.txt
 		
 	 */
