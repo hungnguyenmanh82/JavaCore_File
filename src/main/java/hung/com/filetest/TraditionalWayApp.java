@@ -1,8 +1,9 @@
-package MyFile;
+package hung.com.filetest;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -14,6 +15,7 @@ import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.UnsupportedEncodingException;
 import java.net.URL;
+import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -48,38 +50,59 @@ public class TraditionalWayApp {
 		
 	}
 	
-	/**: trường hợp ko đóng gói trong *.jar
-		Vd1:
-		//gọi từ bên ngoài của *.jar
-		// data.txt: là Relative path tương ứng với package của class đó
-		foo.bar.Baz.class.getResource("data.txt"); // WEB-INF/class/foo/bar/Baz/bar.txt
-		
-		vd2:
-		//giả sử some.Other và foo.bar.Baz đều đc classloader rồi.
-		// root = “/” cấp đầu tiên trong *.jar file tương ứng với main/resources/ và Main/java/ => là dùng absolute path
-		some.Other.class.getResource("/foo/bar/data.txt"); // WEB-INF/class/foo/bar/bar.txt
-		
+	/**
+	 * lúc compile sẽ gộp "main/resources/" và "main/java/" vào 1 folder chung
+	 App81_https_Server.class.getResource("/") = root = main/resources/ = main/java/
+	 App81_https_Server.class.getResource("/abc") = main/resource/abc  = main/java/abc  
+	 //
+	 App81_https_Server.class.getResource(".") = root/pakage_name/     => package_name của class này
+	 App81_https_Server.class.getResource("abc") = root/pakage_name/abc
+	 App81_https_Server.class.getResource("abc").getPath()
+	 //
+	   App81_https_Server.class.getResource("..") = parent folder of root/pakage_name/
+	   App81_https_Server.class.getResource("../..") = parent of parent of root/pakage_name/  
+	  //===========================
+	  + Run or Debug mode trên Eclipse lấy ./ = project folder 
+	  
+	  + run thực tế:  ./ = folder run "java -jar *.jar"
+	 //========= 
+	 File("loginTest.json"):   file ở ./ folder    (tùy run thực tế hay trên eclipse)
+	 File("./abc/test.json"):   
+	 File("/abc"): root folder on linux (not window)
 	 */
-	
-	/**	trường hợp files đc đóng gói cùng file *.jar:
-		// đối với *.jar => WEB-INF/lib/
-		InputStream in = getClass().getResourceAsStream("/file.txt"); 
-		BufferedReader reader = new BufferedReader(new InputStreamReader(in));
-	*/
 
 	public static void GetJavaResourcePath(){
 		//hàm này tính từ Class hiện tại làm vị trí tương đối nếu ko có “/” ở đầu path
-		TraditionalWayApp.class.getResource("bar.txt"); //=> WEB-INF/classes/pakageofclass/bar.txt
-		// tính từ root nếu có “/” ở đầu path
-		TraditionalWayApp.class.getResource("/");         //=> WEB-INF/classes
-		TraditionalWayApp.class.getResource("/bar.txt");  //=> WEB-INF/classes/bar.txt
+		URL url1 = TraditionalWayApp.class.getResource("bar.txt"); 
+		System.out.println(url1.getPath());
 		
+		// tính từ root nếu có “/” ở đầu path
+		URL url2 = TraditionalWayApp.class.getResource("/");
+		System.out.println(url2.getPath());
+		
+		URL url3 = TraditionalWayApp.class.getResource("/bar.txt");  
+		System.out.println(url3.getPath());
 		//===================
 		// trường hợp files đc đóng gói cùng file *.jar:
 		// đối với *.jar => WEB-INF/lib/
 		InputStream in = TraditionalWayApp.class.getResourceAsStream("/file.txt"); 
 		BufferedReader reader = new BufferedReader(new InputStreamReader(in));
 
+	}
+	
+	public static byte[] readBytes_fromFile() throws Exception {
+		// inputStream sẽ read bytes
+		return  TraditionalWayApp.class.getResourceAsStream("/bar.txt").readAllBytes();
+	}
+	
+	public static byte[] readBytes_FileInputStream() throws Exception {
+		
+		// inputStream sẽ read bytes
+		FileInputStream fileInputStream = new FileInputStream("/nonces.json");
+		byte[] bytes = fileInputStream.readAllBytes();
+		
+		fileInputStream.close();
+		return  bytes;
 	}
 
 	/*
@@ -93,7 +116,7 @@ public class TraditionalWayApp {
 			file.delete();
 		try {
 			file.createNewFile();
-			FileOutputStream fos = new FileOutputStream(file);
+			FileOutputStream fos = new FileOutputStream(file);  //dùng OutputStream để write byte
 			fos.write(in.getBytes()); //ghi kiểu byte array
 			fos.flush();
 			fos.close();
@@ -158,8 +181,8 @@ public class TraditionalWayApp {
 	}
 
 	/**
-	 * BufferedReader: đọc ra theo 1 character UTF16 = 2bytes xuống file.
-	 * Kiểu String trên Java và android là UTF16 => mỗi character là 2bytes.
+	 * đọc file định dạng UTF8 => chuyển về UTF16 trên java.
+	 * String trên java là UTF16 tất cả các ký tự đều 2byte
 	 */
 	public static String readFileUtf8( String fileName){
 		String st;
@@ -173,7 +196,7 @@ public class TraditionalWayApp {
 				return null;//file ko ton tai
 			}
 
-			FileInputStream inputStream= new FileInputStream(file); //sequence byte of file no buffer
+			FileInputStream inputStream= new FileInputStream(file); //sequence bytes of file no buffer
 
 			//nếu file chứa nội dụng định dạng UTF8 thi dùng inputStreamReader
 			//convert UTF8 to character (1 character = 2bytes trên android và java)
@@ -206,6 +229,10 @@ public class TraditionalWayApp {
 		return null;
 	}
 	
+	/**
+	 * đọc file định dạng UTF8 => chuyển về UTF16 trên java.
+	 * String trên java là UTF16 tất cả các ký tự đều 2byte
+	 */
 	public static String readFileUtf8_2(String filename, String charSetName) throws IOException  {
 	
 		//convert UTF8 to character (1 character = 2bytes trên android và java)

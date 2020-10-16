@@ -1,4 +1,4 @@
-package MyFile;
+package hung.com.filetest;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
