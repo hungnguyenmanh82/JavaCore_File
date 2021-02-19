@@ -19,6 +19,8 @@ import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
+
 
 public class TraditionalWayApp {
 
@@ -28,28 +30,28 @@ public class TraditionalWayApp {
 		URL url = TraditionalWayApp.class.getResource("/bar.txt");
 		System.out.println("url="+url.getPath());
 		readFileLine(url.getPath());
-		
+
 		//read file
 		// folder: "target/classes/bar.txt"   => test run app on Eclipse as Java app
 		readFileUtf8(url.getPath());
-		
+
 		System.out.println();
 		System.out.println();
 		//write file1:
 		url = TraditionalWayApp.class.getResource("/"); // see folder "$Project/target/classes/output.txt"
 		System.out.println("url="+url.getPath() + "/output.txt");
-		writeByte2File(url.getPath()+"/output.txt", "\r\ntest write to file1");
+		writeByte2File(url.getPath()+"/output.txt", new String("\r\ntest write to file1").getBytes());
 		
 		//write file2:  // see folder "$Project/target/classes/output.txt"
 		writeCharacter2FileUtf8(url.getPath()+"/output.txt", "\r\ntest write to writeCharacter2FileUtf8");
-		
+
 		//write file3:  // see folder "$Project/target/classes/output.txt"
 		writeCharacter2FileUtf8_Buffer(url.getPath()+"/output.txt", "\r\ntest write to writeCharacter2FileUtf8_Buffer");
-		
+
 		//trường hợp đọc từ file *.jar sẽ khác: xem GetJavaResourcePath();
-		
+
 	}
-	
+
 	/**
 	 * lúc compile sẽ gộp "main/resources/" và "main/java/" vào 1 folder chung
 	 App81_https_Server.class.getResource("/") = root = main/resources/ = main/java/
@@ -63,7 +65,7 @@ public class TraditionalWayApp {
 	   App81_https_Server.class.getResource("../..") = parent of parent of root/pakage_name/  
 	  //===========================
 	  + Run or Debug mode trên Eclipse lấy ./ = project folder 
-	  
+
 	  + run thực tế:  ./ = folder run "java -jar *.jar"
 	 //========= 
 	 File("loginTest.json"):   file ở ./ folder    (tùy run thực tế hay trên eclipse)
@@ -75,11 +77,11 @@ public class TraditionalWayApp {
 		//hàm này tính từ Class hiện tại làm vị trí tương đối nếu ko có “/” ở đầu path
 		URL url1 = TraditionalWayApp.class.getResource("bar.txt"); 
 		System.out.println(url1.getPath());
-		
+
 		// tính từ root nếu có “/” ở đầu path
 		URL url2 = TraditionalWayApp.class.getResource("/");
 		System.out.println(url2.getPath());
-		
+
 		URL url3 = TraditionalWayApp.class.getResource("/bar.txt");  
 		System.out.println(url3.getPath());
 		//===================
@@ -89,35 +91,50 @@ public class TraditionalWayApp {
 		BufferedReader reader = new BufferedReader(new InputStreamReader(in));
 
 	}
-	
+
 	public static byte[] readBytes_fromFile() throws Exception {
 		// inputStream sẽ read bytes
 		return  TraditionalWayApp.class.getResourceAsStream("/bar.txt").readAllBytes();
 	}
-	
+
 	public static byte[] readBytes_FileInputStream() throws Exception {
-		
+
 		// inputStream sẽ read bytes
 		FileInputStream fileInputStream = new FileInputStream("/nonces.json");
 		byte[] bytes = fileInputStream.readAllBytes();
-		
-		fileInputStream.close();
+
+		fileInputStream.close();  // phải close lại sau khi read
 		return  bytes;
 	}
 
+	public static byte[] readBytes_FileInputStream2()  {
+		
+		// try() statement là ở Java 8
+		// try() sẽ tự động close FileInputStream sau khi hoàn thành
+		try(FileInputStream is = new FileInputStream("/nonces.json");){
+			byte[] bytes = is.readAllBytes();
+			return  bytes;
+			
+		} catch (Exception e) {
+			e.printStackTrace();
+			return null;
+		}
+		
+	}
+	
 	/*
 	 * + Cách này ko dùng buffer sẽ ko tốn RAM, nhưng performance sẽ ko tốt.
 	 * + Cách này ko có chuyển đổi UTF8.
 	 * + Dữ liệu ghi vào file là kiểu byte
 	 * */
-	public static boolean writeByte2File(String path, String in) {
+	public static boolean writeByte2File(String path, byte[] data) {
 		File file = new File(path);
 		if(file.exists())
 			file.delete();
 		try {
 			file.createNewFile();
 			FileOutputStream fos = new FileOutputStream(file);  //dùng OutputStream để write byte
-			fos.write(in.getBytes()); //ghi kiểu byte array
+			fos.write(data); //ghi kiểu byte array
 			fos.flush();
 			fos.close();
 
@@ -128,6 +145,9 @@ public class TraditionalWayApp {
 
 		return false;
 	}
+
+
+
 
 	/**
 	 * OutputStreamWriter: chuyển đổi UTF8
@@ -188,7 +208,7 @@ public class TraditionalWayApp {
 		String st;
 
 		System.out.println("=========================readFileUtf8(String filename)");
-		
+
 		try{
 			File file = new File(fileName);
 			if( !(file.exists() && file.isFile())){
@@ -218,9 +238,9 @@ public class TraditionalWayApp {
 					stBuilder.append(buf,0,n);
 				}  
 			}
-			
+
 			System.out.print(stBuilder.toString());
-			
+
 			return stBuilder.toString();
 		}catch(Exception e) {
 			e.printStackTrace();
@@ -228,13 +248,13 @@ public class TraditionalWayApp {
 
 		return null;
 	}
-	
+
 	/**
 	 * đọc file định dạng UTF8 => chuyển về UTF16 trên java.
 	 * String trên java là UTF16 tất cả các ký tự đều 2byte
 	 */
 	public static String readFileUtf8_2(String filename, String charSetName) throws IOException  {
-	
+
 		//convert UTF8 to character (1 character = 2bytes trên android và java)
 		BufferedReader buffReader =  new BufferedReader(new InputStreamReader(	new FileInputStream(filename),"UTF-8"),4096);
 
@@ -255,25 +275,37 @@ public class TraditionalWayApp {
 		}
 
 		return stBuilder.toString();
-		
+
 	}
-	
+
 	/**
-	 * cái này dùng thư viện NIO để đọc file ra
+	 * cái này dùng thư viện NIO để đọc file ra => asynchronous
 		import java.nio.file.Files;
 		import java.nio.file.Paths;
 		import java.nio.file.Path;
 	 */
-	public static byte[] readFile2ByteArray(String filename) throws IOException {
-		
+	public static byte[] readFile2Bytes_nio(String filename) throws IOException {
+
 		Path path = Paths.get(filename);
-		byte[] data = Files.readAllBytes(path);
-		
+		byte[] data = Files.readAllBytes(path);  // vẫn là synchronous vì ko có callback
+
 		return data;
-		
+
 	}
-	
-	
+
+	/**
+	 * cái này dùng thư viện NIO để đọc file ra => asynchronous
+		import java.nio.file.Files;
+		import java.nio.file.Paths;
+		import java.nio.file.Path;
+	 */
+	public static void writeBytes2File_nio(String filePath, byte[] data) throws IOException{
+
+		Path path = Paths.get(filePath);
+		Files.write(path, data, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
+
+	}
+
 	/**
 	 * BufferedReader: đọc theo kiểu Character = 2 bytes ra.
 	 */
@@ -286,22 +318,22 @@ public class TraditionalWayApp {
 
 		try {
 			//FileReader sẽ convert mặc đinh ASCCI tới 2byte Unicode
-		    BufferedReader br = new BufferedReader(new FileReader(file));
-		    String line;
+			BufferedReader br = new BufferedReader(new FileReader(file));
+			String line;
 
-		    while ((line = br.readLine()) != null) {
-		        text.append(line);
-		        text.append('\n');
-		    }
-		    br.close();
+			while ((line = br.readLine()) != null) {
+				text.append(line);
+				text.append('\n');
+			}
+			br.close();
 		}
 		catch (IOException e) {
 			e.printStackTrace();
 		}
-		
+
 		System.out.println("=========================readFileLine(String filename)");
 		System.out.print(text.toString());
-		
+
 		return text.toString();
 	}
 }
